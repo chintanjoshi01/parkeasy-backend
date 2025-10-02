@@ -3,7 +3,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const logger = require('../utils/logger');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"});
+const model = genAI.getGenerativeModel({ model: "gemini-flash-lite-latest" });
 
 
 
@@ -31,8 +31,8 @@ You are a Natural Language Understanding AI for ParkEasy, a WhatsApp-based parki
    - **Description:** A vehicle is leaving the lot.
    - **Parameters:**
      - \`identifiers\` (array of strings, required) - Can be vehicle numbers or list numbers.
-     - \`payment_method\` (string, required, default: "cash")
-   - **Examples:** "out 2 cash", "out 1,2,3 cash", "checkout GJ05RT4567 and GJ01AB1234", "1 aur 3 number out karo"
+     - **Parameters:** \`identifiers\`, \`payment_method\` (can be "cash" or "upi")
+   - **Examples:** "out 2 cash", "out 1,2,3 cash", "checkout GJ05RT4567 and GJ01AB1234", "1 aur 3 number out karo", "checkout GJ05RT4567 upi"
 
 **3. Intent: \`get_status\`**
    - **Description:** User wants to know how many cars are parked.
@@ -44,20 +44,13 @@ You are a Natural Language Understanding AI for ParkEasy, a WhatsApp-based parki
    - **Parameters:** None
    - **Examples:** "list", "show all cars"
 
-**5. Intent: \`add_pass\`**
-   - **Description:** Owner wants to add a monthly pass.
+**5. Intent: \`intent_is_pass_creation\`**
+   - **Description:** User wants to start creating a pass for a vehicle.
    - **Parameters:**
      - \`vehicle_number\` (string, required)
-     - \`duration_days\` (integer, required)
-     - \`customer_number\` (string, optional)
-     - \`language\` (string, required, 'en' or 'hi')
-   - **Examples:** "addpass GJ05RT4567 30 customer 9876543210", "30 din ka pass bana do GJ05RT4567"
+   - **Examples:** "pass GJ05RT4567", "GJ05RT4567 pass", "new pass for GJ05RT4567" ,"add pass"
 
-**6. Intent: \`remove_attendant\`**
-   - **Description:** Owner wants to deactivate an attendant.
-   - **Parameters:**
-     - \`attendant_number\` (string, required)
-   - **Examples:** "remove attendant 9876543210", "deactivate 9876543210"
+
      
 **7. Intent: \`add_attendant\`**
    - **Description:** Owner wants to register a new attendant.
@@ -75,7 +68,7 @@ You are a Natural Language Understanding AI for ParkEasy, a WhatsApp-based parki
    - **Description:** This is a specific request for a daily business summary.
    - **Parameters:**
      - \`date_period\` (string, optional, can be "today" or "yesterday")
-   - **Examples:** "report", "show me today's report", "kal ka report do"
+   - **Examples:** "report", "show me today's report", "kal ka report do" ,"Get Report \n View today's or yesterday's business summary." , "get report"
 
 **10. Intent: \`get_help\`**
     - **Description:** User wants a detailed text-based help guide.
@@ -129,24 +122,137 @@ You are a Natural Language Understanding AI for ParkEasy, a WhatsApp-based parki
      - \`vehicle_number\` (string, required)
    - **Examples:** "remove pass for GJ05RT4567", "delete pass GJ05RT4567", "GJ05RT4567 ka pass cancel karo", "cancel pass GJ05RT4567"
 
+**18. Intent: \`set_pricing_model\`**
+    - **Description:** Owner sets the overall pricing strategy for their lot.
+    - **Parameters:**
+      - \`model_type\` (string, required: "tiered", "block", or "hourly")
+    - **Examples:** "use block pricing", "set model to tiered", "switch to hourly rates"
+
+**19. Intent: \`set_tiered_rate\`**
+    - **Description:** Owner sets a price for a specific duration in the TIRED model.
+    - **Parameters:**
+      - \`duration\` (integer, required)
+      - \`fee\` (integer, required)
+    - **Examples:** "set rate for 4 hours to 30", "12 hours ka 50 rs", "for 24 hours charge 100"
+
+**20. Intent: \`set_flat_rate\`**
+    - **Description:** Owner sets the price for the BLOCK or HOURLY model.
+    - **Parameters:**
+      - \`rate_type\` (string, required: "block" or "hourly")
+      - \`fee\` (integer, required)
+      - \`hours\` (integer, optional, required for block)
+    - **Examples:** "set block rate to 60 for 12 hours", "set hourly rate to 15"
+
+**21. Intent: \`view_rates\`**
+    - **Description:** Owner wants to see their current rate card.
+    - **Parameters:** None
+    - **Examples:** "view rates", "show my rate card", "kya price hai?"
+
+
+**15. Intent: \`set_pass_rate\`** // Replaces the old one
+    - **Description:** Owner wants to set the price for a pass of a specific duration.
+    - **Parameters:**
+      - \`duration_days\` (integer, required)
+      - \`pass_name\` (string, required)
+      - \`fee\` (integer, required)
+    - **Examples:** "set 30 day Monthly Pass to 600", "7 din ka Weekly Pass 150 rs ka hai", "set pass price 30 day 500"
+
+    
+**16. Intent: \`view_pass_rates\`**
+    - **Description:** Owner wants to see their current pass prices.
+    - **Parameters:** None
+    - **Examples:** "view pass rates", "show my pass prices"
+
+**17. Intent: \`list_attendants\`**
+    - **Description:** Owner wants to see a list of their attendants.
+    - **Parameters:**
+      - \`filter\` (string, optional, can be "all")
+    - **Examples:** "list attendants", "show my staff", "list all attendants", "show active and inactive staff" , "manage staff","mara tya kam karta loko"
+
+
+**18. Intent: \`activate_attendant\`**
+    - **Description:** Owner wants to reactivate a previously deactivated attendant.
+    - **Parameters:**
+      - \`identifier\` (string, required) - Can be a phone number or a list number.
+    - **Examples:** "activate attendant 9876543210", "reactivate 2"
+
+**19. Intent: \`manage_attendant\`**
+   - **Description:** Owner wants to start the process of managing (removing or activating) an attendant.
+   - **Parameters:**
+     - \`action\` (string, required: "remove" or "activate")
+     - \`identifier\` (string, required) - Can be a phone number or a list number.
+   - **Examples:** "remove attendant 2", "delete staff 9876543210", "activate 3", "reactivate attendant 98..."
 
 Now, analyze the following user text and provide only the JSON output.
 `;
 
 async function getAiIntent(userText) {
-    try {
-        const fullPrompt = `${systemPrompt}\n\nUser Text: "${userText}"`;
-        
-        const result = await model.generateContent(fullPrompt);
-        const response = await result.response;
-        const jsonResponse = response.text().trim().replace(/^```json\s*|```$/g, '');
+  try {
+    const fullPrompt = `${systemPrompt}\n\nUser Text: "${userText}"`;
 
-        return JSON.parse(jsonResponse);
+    const result = await model.generateContent(fullPrompt);
+    const response = await result.response;
+    const jsonResponse = response.text().trim().replace(/^```json\s*|```$/g, '');
 
-    } catch (error) {
-        console.error("Error getting intent from Gemini:", error);
-        return { intent: "fallback", text: userText };
-    }
+    return JSON.parse(jsonResponse);
+
+  } catch (error) {
+    console.error("Error getting intent from Gemini:", error);
+    return { intent: "fallback", text: userText };
+  }
 }
 
-module.exports = { getAiIntent };
+async function generateHelpMessage(role, language) {
+  let targetLanguage = "English";
+  if (language === 'hi') targetLanguage = "Hindi";
+  if (language === 'gu') targetLanguage = "Gujarati";
+
+  // Base template of the help guide in English
+  const baseHelpOwner = `
+        - Vehicle Check-In: Just send the vehicle number (e.g., GJ05RT1234).
+        - Vehicle Check-Out: Use the 'out' command (e.g., out 2).
+        - Create a Pass: Use the 'pass' command (e.g., pass GJ01AB1234).
+        - View Parked Cars: Use the 'list' command.
+        - Get Status Count: Use the 'status' command.
+        - View Active Passes: Use the 'view passes' command.
+        - Get Daily Report: Use the 'report' command.
+        - Manage Rates: Use commands like 'view rates' or 'set block rate 60 for 12 hours'.
+        - Manage Attendants: Use commands like 'add attendant Suresh 98...' or 'remove attendant 98...'.
+    `;
+
+  const baseHelpAttendant = `
+        - To Park a Car: Just send the vehicle number (e.g., GJ05RT1234).
+        - To Check-Out a Car: Use the 'out' command (e.g., out 2).
+        - To Create a Pass: Use the 'pass' command (e.g., pass GJ01PASS9999).
+        - View Parked Cars: Use the 'list' command.
+        - Get Status Count: Use the 'status' command.
+    `;
+
+  const baseContent = (role === 'owner') ? baseHelpOwner : baseHelpAttendant;
+  const title = (role === 'owner') ? "ParkEasy Owner Command Guide" : "ParkEasy Attendant Help Guide";
+
+  // The instruction prompt for Gemini
+  const generationPrompt = `
+        You are a helpful AI assistant for a WhatsApp bot named ParkEasy.
+        Your task is to take the following list of commands and format it into a polite, professional, and easy-to-read help message for a user on WhatsApp.
+        - Use WhatsApp formatting like *bold* for titles and commands.
+        - Translate the entire message, including the title and all points, into professional ${targetLanguage}.
+        - The tone should be helpful and clear.
+        - Do not add any text before or after the formatted help message.
+
+        Title: "${title}"
+        Commands:
+        ${baseContent}
+    `;
+
+  try {
+    const result = await model.generateContent(generationPrompt);
+    const response = await result.response;
+    return response.text().trim();
+  } catch (error) {
+    logger.error("Error generating help message with Gemini:", error);
+    return "Sorry, I was unable to generate the help guide at this time."; // Fallback
+  }
+}
+
+module.exports = { getAiIntent, generateHelpMessage };

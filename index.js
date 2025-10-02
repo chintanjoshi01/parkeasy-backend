@@ -471,17 +471,20 @@
 // });
 
 // index.js (Main Entry Point)
-// index.js (Main Entry Point)
+
 require('dotenv').config();
 const express = require('express');
 const logger = require('./utils/logger');
 const whatsappController = require('./controllers/whatsappController');
 const { handleDailyTasks } = require('./handlers/cronHandler'); // <-- 1. IMPORT THE NEW HANDLER
+const path = require('path'); 
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
+// --- NEW: SERVE THE GENERATED RECEIPT IMAGES PUBLICLY ---
+app.use('/receipts', express.static(path.join(__dirname, 'receipts')));
+app.use('/passes', express.static(path.join(__dirname, 'passes')));
 // Webhook routes
 app.post('/webhook', whatsappController.handleIncomingMessage);
 app.get('/webhook', whatsappController.verifyWebhook);
